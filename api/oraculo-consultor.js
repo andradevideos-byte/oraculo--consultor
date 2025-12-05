@@ -1,9 +1,3 @@
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export default async function handler(req, res) {
   // Só aceitamos POST
   if (req.method !== "POST") {
@@ -34,38 +28,56 @@ export default async function handler(req, res) {
         .json({ error: "Faltando 'cards' ou 'question' no corpo." });
     }
 
-    const completion = await client.chat.completions.create({
-      model: "gpt-4.1",
-      messages: [
-        {
-          role: "system",
-          content: `
+    // Chamada direta à API da OpenAI
+    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1",
+        messages: [
+          {
+            role: "system",
+            content: `
 Você é o ORÁCULO CONSULTOR.
-Você fala com clareza, calma e elegância.
+Fala com clareza, calma e elegância.
 Não prevê o futuro — interpreta símbolos e arquétipos.
 Ajuda o usuário a tomar decisões conscientes.
 Guia através de reflexão, não adivinhação.
           `,
-        },
-        {
-          role: "user",
-          content: `
+          },
+          {
+            role: "user",
+            content: `
 As cartas escolhidas foram: ${cards.join(", ")}.
 Pergunta do usuário: "${question}".
 
-Faça uma leitura simbólica, moderna e prática.
-Com foco em orientação, clareza e autoconhecimento.
+Faça uma leitura simbólica, moderna e prática,
+com foco em orientação, clareza e autoconhecimento.
           `,
-        },
-      ],
+          },
+        ],
+      }),
     });
 
-    res.status(200).json({
-      interpretation: completion.choices[0].message.content,
-    });
+    if (!openaiRes.ok) {
+      const txt = await openaiRes.text();
+      console.error("Erro OpenAI:", txt);
+      return res
+        .status(500)
+        .json({ error: "Erro ao falar com a OpenAI.", detail: txt });
+    }
+
+    const data = await openaiRes.json();
+
+    const interpretation = data.choices?.[0]?.message?.content || "";
+
+    return res.status(200).json({ interpretation });
   } catch (err) {
     console.error(err);
-    res
+    return res
       .status(500)
       .json({ error: "Erro interno no oráculo.", detail: err.message });
   }
