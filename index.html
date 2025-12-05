@@ -541,6 +541,32 @@
             <div class="container">
                 <div class="row">
                     <div class="col-lg-12 text-center">
+                        <section id="oraculo" class="mt-5">
+  <h2 class="text-center mb-4">Oráculo Consultor</h2>
+
+  <div class="container" style="max-width: 600px;">
+    
+    <label for="oraculo-question" class="form-label">
+      Faça sua pergunta:
+    </label>
+
+    <textarea
+      id="oraculo-question"
+      class="form-control"
+      rows="3"
+      placeholder="Ex.: Qual o melhor jeito de lidar com este momento profissional?"
+    ></textarea>
+
+    <button id="oraculo-button" class="as_btn mt-3">
+      Fazer minha leitura gratuita
+    </button>
+
+    <div id="oraculo-status" class="mt-3" style="font-size: 0.9rem;"></div>
+    <div id="oraculo-result" class="mt-4" style="white-space: pre-wrap;"></div>
+
+  </div>
+</section>
+
                         <h1 class="as_heading as_heading_center">What Our Customers Say</h1>
                         <p class="as_font14 as_margin0 as_padderBottom50">Consectetur adipiscing elit, sed do eiusmod tempor incididuesdeentiut labore <br>etesde dolore magna aliquapspendisse and the gravida.</p>
                     </div>
@@ -1128,5 +1154,54 @@
     <script src="assets/js/plugin/airdatepicker/datepicker.min.js"></script>
     <script src="assets/js/plugin/airdatepicker/i18n/datepicker.en.js"></script>
     <script src="assets/js/custom.js"></script>  
+    <script>
+  (function () {
+    const questionInput = document.getElementById("oraculo-question");
+    const button = document.getElementById("oraculo-button");
+    const statusEl = document.getElementById("oraculo-status");
+    const resultEl = document.getElementById("oraculo-result");
+
+    if (!button) return;
+
+    button.addEventListener("click", async function () {
+      const question = questionInput.value.trim();
+      if (!question) {
+        statusEl.textContent = "Escreva uma pergunta antes de pedir a leitura 🙏";
+        return;
+      }
+
+      // CARTAS DE TESTE — você pode mudar depois
+      const cards = ["A Sacerdotisa", "O Louco", "A Força"];
+
+      button.disabled = true;
+      statusEl.textContent = "Consultando o Oráculo...";
+      resultEl.textContent = "";
+
+      try {
+        const res = await fetch("/api/oraculo-consultor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cards, question }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          statusEl.textContent =
+            data.error || "Erro ao falar com o Oráculo 😢";
+          return;
+        }
+
+        statusEl.textContent = "Leitura recebida 🔮";
+        resultEl.textContent = data.interpretation;
+
+      } catch (err) {
+        statusEl.textContent = "Falha de conexão com o Oráculo 😭";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  })();
+</script>
 </body>
 </html>
