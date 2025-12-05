@@ -1,12 +1,38 @@
 import OpenAI from "openai";
 
-export default async function handler(req, res) {
-  try {
-    const { cards, question } = JSON.parse(req.body);
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-    const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+export default async function handler(req, res) {
+  // Só aceitamos POST
+  if (req.method !== "POST") {
+    return res
+      .status(405)
+      .json({ error: "Use método POST com JSON { cards, question }" });
+  }
+
+  try {
+    let body = req.body;
+
+    if (!body) {
+      return res
+        .status(400)
+        .json({ error: "Corpo vazio. Envie { cards, question }." });
+    }
+
+    // Se vier como string, converte pra objeto
+    if (typeof body === "string") {
+      body = JSON.parse(body);
+    }
+
+    const { cards, question } = body;
+
+    if (!cards || !question) {
+      return res
+        .status(400)
+        .json({ error: "Faltando 'cards' ou 'question' no corpo." });
+    }
 
     const completion = await client.chat.completions.create({
       model: "gpt-4.1",
@@ -19,7 +45,7 @@ Você fala com clareza, calma e elegância.
 Não prevê o futuro — interpreta símbolos e arquétipos.
 Ajuda o usuário a tomar decisões conscientes.
 Guia através de reflexão, não adivinhação.
-`,
+          `,
         },
         {
           role: "user",
@@ -29,7 +55,7 @@ Pergunta do usuário: "${question}".
 
 Faça uma leitura simbólica, moderna e prática.
 Com foco em orientação, clareza e autoconhecimento.
-        `,
+          `,
         },
       ],
     });
@@ -38,6 +64,9 @@ Com foco em orientação, clareza e autoconhecimento.
       interpretation: completion.choices[0].message.content,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res
+      .status(500)
+      .json({ error: "Erro interno no oráculo.", detail: err.message });
   }
 }
